@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="921d13b7-e6da-40df-8668-263f80bfa000" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<os:object-store name="Counter_Store" doc:name="Object store" doc:id="17deca4e-a6bb-4c44-a11c-60f181580aad" />
+	<configuration-properties doc:name="Configuration properties" doc:id="ff7ab1ba-ea71-4897-9410-93bdbc95d9ab" file="config.yaml" />
+	<flow name="mule-statefulFlow" doc:id="83504af1-c4cf-4218-8236-a7db67612b33" >
+		<http:listener doc:name="GET /send" doc:id="7cf28eab-a532-4394-99eb-5e87e14e97e0" config-ref="HTTP_Listener_config" path="/send" allowedMethods="GET"/>
+		<os:retrieve doc:name="Retrieve currentCount" doc:id="452549ab-2dc4-4140-b4e8-05753265b54c" key="currentCount" objectStore="Counter_Store" target="count" targetValue="#[payload as Number]">
+			<os:default-value ><![CDATA[#[0]]]></os:default-value>
+		</os:retrieve>
+		<set-variable value="#[vars.count + 1]" doc:name="Increment Count +1" doc:id="612d2472-a840-4bdd-b201-3d5a2d949181" variableName="count"/>
+		<set-variable value="#[p('node')]" doc:name="Set Node" doc:id="ff4f470f-f43a-4fd1-9ffb-6d1d96e0efd9" variableName="node"/>
+		<logger level="INFO" doc:name="Logger" doc:id="85d49a39-84f6-4d96-9942-04f9bd7013ac" message="#['\n*** Node Called: ' ++ p('node')]"/>
+		<ee:transform doc:name="Transform Message" doc:id="13c25ed2-1df0-4850-a2cd-1a79efea69c5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+	numseq: vars.count,
+	nodo: vars.node as Number,
+	prezzo: randomInt(1000)
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="874e366c-1c31-4e54-b3c8-81eae7b71d11" key="currentCount" objectStore="Counter_Store">
+			<os:value ><![CDATA[#[vars.count]]]></os:value>
+		</os:store>
+	</flow>
+</mule>
